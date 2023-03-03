@@ -1,3 +1,5 @@
+// Risky OS, by cdcarter
+// forked from
 // Steve Operating System
 // Stephen Marz
 // 21 Sep 2019
@@ -8,6 +10,7 @@ use core::arch::global_asm;
 
 
 global_asm!(include_str!("asm/boot.S"));
+global_asm!(include_str!("asm/trap.S"));
 
 
 use core::arch::asm;
