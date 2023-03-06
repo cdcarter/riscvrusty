@@ -86,18 +86,7 @@ extern "C" {
     static HEAP_SIZE: usize;
 }
 
-// ///////////////////////////////////
-// / ENTRY POINT
-// ///////////////////////////////////
-#[no_mangle]
-extern "C" fn kinit() {
-    // Main should initialize all sub-systems and get
-    // ready to start scheduling. The last thing this
-    // should do is start the timer.
-
-    let mut board_uart = uart::Uart::new(0x1000_0000);
-    board_uart.init();
-
+fn print_memory_map() {
     println!("RISC-V Virt Memory Map");
     unsafe {
         println!("TEXT:   0x{:x} -> 0x{:x}", TEXT_START, TEXT_END);
@@ -114,24 +103,43 @@ extern "C" fn kinit() {
             HEAP_START + HEAP_SIZE
         );
     }
+}
 
-    page::init();
-
-    println!("allocating 1 pages: {:p}",page::zalloc(1));
-    println!("allocating 2 pages: {:p}",page::zalloc(2));
-    println!("allocating 3 pages: {:p}",page::zalloc(3));
+fn page_allocation_fun() {
+    println!("allocating 1 pages: {:p}", page::zalloc(1));
+    println!("allocating 2 pages: {:p}", page::zalloc(2));
+    println!("allocating 3 pages: {:p}", page::zalloc(3));
     let freeable = page::zalloc(2);
-	println!("allocating 2 pages: {:p} ** this will be freed",freeable);
-    println!("allocating 4 pages: {:p}",page::zalloc(4));
+    println!("allocating 2 pages: {:p} ** this will be freed", freeable);
+    println!("allocating 4 pages: {:p}", page::zalloc(4));
     page::print_page_allocations();
 
     println!("deallocating 2 pages: {:p}", freeable);
     page::dalloc(freeable);
-	page::print_page_allocations();
-    println!("allocating 4 pages: {:p}",page::zalloc(4));
-	println!("allocating 1 pages: {:p}",page::zalloc(1));
-    println!("allocating 1 pages: {:p}",page::zalloc(1));
     page::print_page_allocations();
+    println!("allocating 4 pages: {:p}", page::zalloc(4));
+    println!("allocating 1 pages: {:p}", page::zalloc(1));
+    println!("allocating 1 pages: {:p}", page::zalloc(1));
+    page::print_page_allocations();
+}
+
+// ///////////////////////////////////
+// / ENTRY POINT
+// ///////////////////////////////////
+#[no_mangle]
+extern "C" fn kinit() {
+    // Main should initialize all sub-systems and get
+    // ready to start scheduling. The last thing this
+    // should do is start the timer.
+
+    let mut board_uart = uart::Uart::new(0x1000_0000);
+    board_uart.init();
+
+    print_memory_map();
+
+    page::init();
+
+    page_allocation_fun();
 
     unsafe { asm!("li t6, 0xdeadbeef") };
     println!("<kinit>: Complete");
