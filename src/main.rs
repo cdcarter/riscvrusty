@@ -103,8 +103,10 @@ fn print_memory_map() {
             HEAP_START + HEAP_SIZE
         );
     }
+	println!();
 }
 
+#[allow(dead_code)]
 fn page_allocation_fun() {
     println!("allocating 1 pages: {:p}", page::zalloc(1));
     println!("allocating 2 pages: {:p}", page::zalloc(2));
@@ -139,8 +141,9 @@ extern "C" fn kinit() {
 
     page::init();
 
-    page_allocation_fun();
+    //page_allocation_fun();
 
+	// set a value you can see on the register monitor. for fun.
     unsafe { asm!("li t6, 0xdeadbeef") };
     println!("<kinit>: Complete");
 }

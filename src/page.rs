@@ -1,5 +1,4 @@
 use core::mem::size_of;
-use core::num;
 use core::ptr::null_mut;
 
 extern "C" {
@@ -74,7 +73,6 @@ pub fn init() {
     unsafe {
         let num_pages = HEAP_SIZE / PAGE_SIZE;
         let ptr = HEAP_START as *mut Page;
-        println!("Clearing {} pages - starting at: {:p}", num_pages, ptr);
 
         // clear all pages all bits, just in case
         for i in 0..num_pages {
@@ -98,7 +96,7 @@ pub fn alloc(pages: usize) -> *mut u8 {
             if (*ptr.add(i)).is_free() {
                 found = true;
                 for j in i..i + pages {
-                    if (!(*ptr.add(j)).is_free()) {
+                    if !(*ptr.add(j)).is_free() {
                         found = false;
                         break;
                     }
