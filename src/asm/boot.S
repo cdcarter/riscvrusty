@@ -46,7 +46,7 @@ _start:
 	la		sp, _stack_end
 	# Setting `mstatus` register:
 	# 0b01 << 11: Machine's previous protection mode is 2 (MPP=2).
-	li		t0, 0b11 << 11 | (1 << 13)
+	li		t0, 0b11 << 11 
 	csrw	mstatus, t0
 	# Do not allow interrupts while running kinit
 	csrw	mie, zero
@@ -67,7 +67,7 @@ _start:
 	# 1 << 5     : Previous interrupt-enable bit is 1 (SPIE=1 [Enabled]).
 	# We set the "previous" bits because the mret will write the current bits
 	# with the previous bits.
-	li		t0, (0b00 << 11) | (1 << 7) | (1 << 5) | (1 << 13)
+	li		t0, (0b00 << 11) | (1 << 7) | (1 << 5)
 	csrw	mstatus, t0
 	# Machine's trap vector base address is set to `m_trap_vector`, for
 	# "machine" trap vector.
@@ -96,7 +96,7 @@ _start:
 	sub		sp, sp, t0
 
 	# The parked harts will be put into machine mode with interrupts enabled.
-	li		t0, 0b11 << 11 | (1 << 7) | (1 << 13)
+	li		t0, 0b11 << 11 | (1 << 7)
 	csrw	mstatus, t0
 	# Allow for MSIP (Software interrupt). We will write the MSIP from hart #0 to
 	# awaken these parked harts.
