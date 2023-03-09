@@ -162,7 +162,6 @@ extern "C" fn kinit() {
     kmem::init();
 
     let root_ptr = kmem::get_page_table();
-    let root_u = root_ptr as usize;
     let mut root = unsafe { root_ptr.as_mut().unwrap() };
 
     unsafe {

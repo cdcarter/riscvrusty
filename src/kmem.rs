@@ -1,7 +1,7 @@
 
 use core::ptr::null_mut;
 
-use crate::page::{zalloc, Table, PAGE_SIZE};
+use crate::page::{zalloc, Table};
 
 static mut KMEM_PAGE_TABLE: *mut Table = null_mut();
 

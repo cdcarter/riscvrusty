@@ -21,9 +21,9 @@ pub const fn align_val(val: usize, order: usize) -> usize {
 // BEGIN: Page Allocator
 bitflags! {
 pub struct PageBits: u8 {
-    const Empty = 0;
-    const Taken = 0b01;
-    const Last = 0b10;
+    const EMPTY = 0;
+    const TAKEN = 0b01;
+    const LAST = 0b10;
 }
 }
 
@@ -34,7 +34,7 @@ pub struct Page {
 
 impl Page {
     pub fn is_last(&self) -> bool {
-        if self.flags & PageBits::Last.bits != 0 {
+        if self.flags & PageBits::LAST.bits != 0 {
             true
         } else {
             false
@@ -42,7 +42,7 @@ impl Page {
     }
 
     pub fn is_taken(&self) -> bool {
-        if self.flags & PageBits::Taken.bits != 0 {
+        if self.flags & PageBits::TAKEN.bits != 0 {
             true
         } else {
             false
@@ -102,11 +102,11 @@ pub fn alloc(pages: usize) -> *mut u8 {
 
             if found {
                 for k in i..i + pages - 1 {
-                    (*ptr.add(k)).set_flag(PageBits::Taken);
+                    (*ptr.add(k)).set_flag(PageBits::TAKEN);
                 }
 
-                (*ptr.add(i + pages - 1)).set_flag(PageBits::Taken);
-                (*ptr.add(i + pages - 1)).set_flag(PageBits::Last);
+                (*ptr.add(i + pages - 1)).set_flag(PageBits::TAKEN);
+                (*ptr.add(i + pages - 1)).set_flag(PageBits::LAST);
 
                 return (ALLOC_START + PAGE_SIZE * i) as *mut u8;
             }
