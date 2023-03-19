@@ -103,7 +103,7 @@ fn print_memory_map() {
             HEAP_START + HEAP_SIZE
         );
     }
-	println!();
+    println!();
 }
 
 #[allow(dead_code)]
@@ -125,24 +125,18 @@ fn page_allocation_fun() {
     page::print_page_allocations();
 }
 
-pub fn id_map_range(root: &mut page::Table,
-                    start: usize,
-                    end: usize,
-                    bits: i64)
-{
-	let mut memaddr = start & !(page::PAGE_SIZE - 1);
-	let num_kb_pages = (page::align_val(end, 12)
-	                 - memaddr)
-	                / page::PAGE_SIZE;
+pub fn id_map_range(root: &mut page::Table, start: usize, end: usize, bits: i64) {
+    let mut memaddr = start & !(page::PAGE_SIZE - 1);
+    let num_kb_pages = (page::align_val(end, 12) - memaddr) / page::PAGE_SIZE;
 
-	// I named this num_kb_pages for future expansion when
-	// I decide to allow for GiB (2^30) and 2MiB (2^21) page
-	// sizes. However, the overlapping memory regions are causing
-	// nightmares.
-	for _ in 0..num_kb_pages {
-		page::map(root, memaddr, memaddr, bits, 0);
-		memaddr += 1 << 12;
-	}
+    // I named this num_kb_pages for future expansion when
+    // I decide to allow for GiB (2^30) and 2MiB (2^21) page
+    // sizes. However, the overlapping memory regions are causing
+    // nightmares.
+    for _ in 0..num_kb_pages {
+        page::map(root, memaddr, memaddr, bits, 0);
+        memaddr += 1 << 12;
+    }
 }
 // ///////////////////////////////////
 // / ENTRY POINT
@@ -162,118 +156,137 @@ extern "C" fn kinit() {
     kmem::init();
 
     let root_ptr = kmem::get_page_table();
+    let root_u = root_ptr as usize;
     let mut root = unsafe { root_ptr.as_mut().unwrap() };
 
     unsafe {
-		// Map heap descriptors
-		let num_pages = HEAP_SIZE / page::PAGE_SIZE;
-		id_map_range(&mut root,
-					 HEAP_START,
-					 HEAP_START + num_pages,
-					 page::EntryBits::ReadWrite.val()
-		);
-		// Map executable section
-		id_map_range(
-		             &mut root,
-		             TEXT_START,
-		             TEXT_END,
-		             page::EntryBits::ReadExecute.val(),
-		);
-		// Map rodata section
-		// We put the ROdata section into the text section, so they can
-		// potentially overlap however, we only care that it's read
-		// only.
-		id_map_range(
-		             &mut root,
-		             RODATA_START,
-		             RODATA_END,
-		             page::EntryBits::ReadExecute.val(),
-		);
-		// Map data section
-		id_map_range(
-		             &mut root,
-		             DATA_START,
-		             DATA_END,
-		             page::EntryBits::ReadWrite.val(),
-		);
-		// Map bss section
-		id_map_range(
-		             &mut root,
-		             BSS_START,
-		             BSS_END,
-		             page::EntryBits::ReadWrite.val(),
-		);
-		// Map kernel stack
-		id_map_range(
-		             &mut root,
-		             KERNEL_STACK_START,
-		             KERNEL_STACK_END,
-		             page::EntryBits::ReadWrite.val(),
-		);
-	}
+        // Map heap descriptors
+        let num_pages = HEAP_SIZE / page::PAGE_SIZE;
+        id_map_range(
+            &mut root,
+            HEAP_START,
+            HEAP_START + num_pages,
+            page::EntryBits::ReadWrite.val(),
+        );
+        // Map executable section
+        id_map_range(
+            &mut root,
+            TEXT_START,
+            TEXT_END,
+            page::EntryBits::ReadExecute.val(),
+        );
+        // Map rodata section
+        // We put the ROdata section into the text section, so they can
+        // potentially overlap however, we only care that it's read
+        // only.
+        id_map_range(
+            &mut root,
+            RODATA_START,
+            RODATA_END,
+            page::EntryBits::ReadExecute.val(),
+        );
+        // Map data section
+        id_map_range(
+            &mut root,
+            DATA_START,
+            DATA_END,
+            page::EntryBits::ReadWrite.val(),
+        );
+        // Map bss section
+        id_map_range(
+            &mut root,
+            BSS_START,
+            BSS_END,
+            page::EntryBits::ReadWrite.val(),
+        );
+        // Map kernel stack
+        id_map_range(
+            &mut root,
+            KERNEL_STACK_START,
+            KERNEL_STACK_END,
+            page::EntryBits::ReadWrite.val(),
+        );
+    }
 
-	// UART
-	page::map(
-	          &mut root,
-	          0x1000_0000,
-	          0x1000_0000,
-	          page::EntryBits::ReadWrite.val(),
-			  0
-	);
+    // UART
+    page::map(
+        &mut root,
+        0x1000_0000,
+        0x1000_0000,
+        page::EntryBits::ReadWrite.val(),
+        0,
+    );
 
-	// CLINT
-	//  -> MSIP
-	page::map(
-	          &mut root,
-	          0x0200_0000,
-	          0x0200_0000,
-	          page::EntryBits::ReadWrite.val(),
-			  0
-	);
-	//  -> MTIMECMP
-	page::map(
-	          &mut root,
-	          0x0200_b000,
-	          0x0200_b000,
-	          page::EntryBits::ReadWrite.val(),
-			  0
-	);
-	//  -> MTIME
-	page::map(
-	          &mut root,
-	          0x0200_c000,
-	          0x0200_c000,
-	          page::EntryBits::ReadWrite.val(),
-			  0
-	);
-	// PLIC
-	id_map_range(
-	             &mut root,
-	             0x0c00_0000,
-	             0x0c00_2000,
-	             page::EntryBits::ReadWrite.val(),
-	);
-	id_map_range(
-	             &mut root,
-	             0x0c20_0000,
-	             0x0c20_8000,
-	             page::EntryBits::ReadWrite.val(),
-	);
-	page::print_page_allocations();
-	// The following shows how we're going to walk to translate a virtual
-	// address into a physical address. We will use this whenever a user
-	// space application requires services. Since the user space application
-	// only knows virtual addresses, we have to translate silently behind
-	// the scenes.
-	let p = 0x8005_7000 as usize;
-	let m = page::virt_to_phys(&root, p).unwrap_or(0);
-	println!("Walk 0x{:x} = 0x{:x}", p, m);
+    // CLINT
+    //  -> MSIP
+    page::map(
+        &mut root,
+        0x0200_0000,
+        0x0200_0000,
+        page::EntryBits::ReadWrite.val(),
+        0,
+    );
+    //  -> MTIMECMP
+    page::map(
+        &mut root,
+        0x0200_b000,
+        0x0200_b000,
+        page::EntryBits::ReadWrite.val(),
+        0,
+    );
+    //  -> MTIME
+    page::map(
+        &mut root,
+        0x0200_c000,
+        0x0200_c000,
+        page::EntryBits::ReadWrite.val(),
+        0,
+    );
+    // PLIC
+    id_map_range(
+        &mut root,
+        0x0c00_0000,
+        0x0c00_2000,
+        page::EntryBits::ReadWrite.val(),
+    );
+    id_map_range(
+        &mut root,
+        0x0c20_0000,
+        0x0c20_8000,
+        page::EntryBits::ReadWrite.val(),
+    );
+    page::print_page_allocations();
+    // The following shows how we're going to walk to translate a virtual
+    // address into a physical address. We will use this whenever a user
+    // space application requires services. Since the user space application
+    // only knows virtual addresses, we have to translate silently behind
+    // the scenes.
+    let p = 0x8005_7000 as usize;
+    let m = page::virt_to_phys(&root, p).unwrap_or(0);
+    println!("Walk 0x{:x} = 0x{:x}", p, m);
 
     //page_allocation_fun();
 
-	// set a value you can see on the register monitor. for fun.
+    // set a value you can see on the register monitor. for fun.
     unsafe { asm!("li t6, 0xdeadbeef") };
+
+    let root_ppn = root_u >> 12;
+    let satp_val = 8 << 60 | root_ppn;
+    println!("setting SATP register to {:x}", satp_val);
+    unsafe {
+        asm!("csrw satp, {}", in(reg) satp_val);
+		asm!("sfence.vma zero, {}", in(reg) 0);
+    }
+
     println!("<kinit>: Complete");
+}
+
+#[no_mangle]
+extern "C" fn kmain() {
+    let mut board_uart = uart::Uart::new(0x1000_0000);
+    board_uart.init();
+
+    println!("hello from kmain");
 }
 
 #[no_mangle]
@@ -286,6 +299,8 @@ extern "C" fn kinit_hart() {
 // / RUST MODULES
 // ///////////////////////////////////
 
-pub mod page;
-pub mod uart;
+pub mod cpu;
 pub mod kmem;
+pub mod page;
+pub mod trap;
+pub mod uart;

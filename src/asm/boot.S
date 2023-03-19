@@ -61,21 +61,41 @@ _start:
 	# We set the return address (ra above) to this label. When kinit() is finished
 	# in Rust, it will return here.
 
+	li x10, 0x1F
+	csrw pmpcfg0, x10
+	li x11, -1
+	csrw pmpaddr0, x11
+
 	# Setting `mstatus` (supervisor status) register:
 	# 0b01 << 11 : Previous protection mode is 1 (MPP=01 [Supervisor]).
 	# 1 << 7     : Previous machine interrupt-enable bit is 1 (MPIE=1 [Enabled])
 	# 1 << 5     : Previous interrupt-enable bit is 1 (SPIE=1 [Enabled]).
 	# We set the "previous" bits because the mret will write the current bits
 	# with the previous bits.
-	li		t0, (0b00 << 11) | (1 << 7) | (1 << 5)
+	li		t0, (0b01 << 11) | (0 << 7) | (0 << 5)
 	csrw	mstatus, t0
 	# Machine's trap vector base address is set to `m_trap_vector`, for
 	# "machine" trap vector.
 	la		t2, m_trap_vector
 	csrw	mtvec, t2
-	# Jump to first process. We put the MPP = 00 for user mode, so after
-	# mret, we will jump to the first process' addresss in user mode.
-	la		ra, 4f
+	# Setting `stvec` (supervisor trap vector) register:
+	# Essentially this is a function pointer, but the last two bits can be 00 or 01
+	# 00        : All exceptions set pc to BASE
+	# 01        : Asynchronous interrupts set pc to BASE + 4 x scause
+	# la		t3, s_trap_vector
+	# csrw	stvec, t3
+	# Jump to kmain. We put the MPP = 01 for supervisor mode, so after
+	# mret, we will jump to kmain in supervisor mode.
+	la		t1, kmain
+	csrw	mepc, t1
+	# Setting `sie` (supervisor interrupt enable) register:
+	# This register takes the same bits as mideleg
+	# 1 << 1    : Supervisor software interrupt enable (SSIE=1 [Enabled])
+	# 1 << 5    : Supervisor timer interrupt enable (STIE=1 [Enabled])
+	# 1 << 9    : Supervisor external interrupt enable (SEIE=1 [Enabled])
+	# 0xaaa = MEIP/SEIP and MTIP/STIP and MSIP/SSIP
+	li		t2, 0x888
+	csrw	mie, t2
 	mret
 3:
 
